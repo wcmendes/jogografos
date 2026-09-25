@@ -1,0 +1,1327 @@
+<title>Detetive dos Grafos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    color-scheme: dark;
+    --bg: #0b2036;
+    --bg-cork: #0e2740;
+    --panel: #f6f1e2;
+    --panel-ink: #23211b;
+    --panel-ink-dim: #6b6455;
+    --ink: #eaf1f8;
+    --ink-dim: #93a8bf;
+    --line: #2c4a68;
+    --accent: #e2711d;
+    --accent-ink: #241004;
+    --accent-2: #4d9de0;
+    --good: #33b57a;
+    --bad: #e0524a;
+    --gold: #e8c15c;
+    --font-display: 'Special Elite', 'Courier New', monospace;
+    --font-body: 'Public Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 620px at 12% -8%, #123258 0%, transparent 60%),
+      repeating-linear-gradient(135deg, var(--bg-cork) 0px, var(--bg-cork) 2px, var(--bg) 2px, var(--bg) 34px),
+      var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    padding-inline: clamp(14px, 4vw, 40px);
+    padding-block: clamp(16px, 3vw, 32px);
+  }
+  ::selection{ background: var(--accent); color: var(--accent-ink); }
+  h1,h2,h3{ font-family: var(--font-display); font-weight:400; letter-spacing:.01em; margin:0; }
+  p{ margin:0; }
+  .mono{ font-family: var(--font-mono); }
+  button{ font-family: var(--font-body); }
+  :focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .app{ max-width: 1180px; margin: 0 auto; display:flex; flex-direction:column; gap: 18px; }
+
+  /* ---------- header ---------- */
+  .board-header{
+    display:flex; flex-wrap:wrap; gap:20px; align-items:flex-end; justify-content:space-between;
+    border-bottom: 1px dashed var(--line); padding-bottom: 16px;
+  }
+  .badge{
+    display:inline-block; font-family:var(--font-mono); font-size:11px; font-weight:700;
+    letter-spacing:.14em; color: var(--bg); background: var(--gold);
+    padding: 3px 9px; border-radius: 3px; transform: rotate(-2deg); margin-bottom:10px;
+  }
+  .brand h1{ font-size: clamp(28px, 4vw, 40px); color:#fff; }
+  .tagline{ color: var(--ink-dim); font-size:14.5px; max-width:52ch; margin-top:8px; line-height:1.45; }
+
+  .stats{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .btn-board{
+    background: rgba(255,255,255,.06); border:1px solid var(--line); border-radius:8px;
+    color: var(--ink); font-weight:700; font-size:12.5px; padding:9px 14px; cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+  }
+  .btn-board:hover{ background: rgba(255,255,255,.11); }
+  .stat{
+    background: rgba(255,255,255,.04); border:1px solid var(--line); border-radius:8px;
+    padding:8px 14px; min-width:78px; text-align:center;
+  }
+  .stat-label{ display:block; font-size:10px; letter-spacing:.1em; color:var(--ink-dim); text-transform:uppercase; }
+  .stat-value{ display:block; font-family:var(--font-mono); font-size:19px; font-weight:700; color:var(--gold); margin-top:2px; }
+
+  /* ---------- main layout ---------- */
+  .board-main{ display:grid; grid-template-columns: 380px 1fr; gap:18px; align-items:start; }
+  @media (max-width: 820px){ .board-main{ grid-template-columns: 1fr; } }
+
+  .case-panel{
+    background: var(--panel); color: var(--panel-ink); border-radius: 10px;
+    padding: 20px 22px 22px; box-shadow: 0 14px 30px rgba(0,0,0,.35);
+    display:flex; flex-direction:column; gap:14px;
+  }
+  .case-panel h2{ font-size:20px; line-height:1.3; }
+  .case-blurb{ font-size:13.5px; color: var(--panel-ink-dim); line-height:1.55; }
+  .mission{
+    background:#fff; border-left:4px solid var(--accent); border-radius:4px;
+    padding:10px 12px; font-size:13px; line-height:1.5;
+  }
+  .mission strong{ color: var(--accent); text-transform:uppercase; font-size:11px; letter-spacing:.06em; }
+
+  .path-readout{ font-size:12.5px; color: var(--panel-ink-dim); }
+  .path-label{ text-transform:uppercase; letter-spacing:.08em; font-size:10.5px; margin-right:6px; }
+  #path-readout{ color: var(--panel-ink); font-weight:700; }
+
+  .controls{ display:flex; gap:8px; flex-wrap:wrap; }
+  .btn{
+    border:none; border-radius:7px; padding:9px 14px; font-size:13px; font-weight:700;
+    cursor:pointer; transition: transform .12s ease, filter .12s ease;
+  }
+  .btn:hover{ filter:brightness(1.06); }
+  .btn:active{ transform: translateY(1px); }
+  .btn:disabled{ opacity:.42; cursor:not-allowed; }
+  .btn-primary{ background: var(--accent); color:#fff; }
+  .btn-ghost{ background:transparent; color: var(--panel-ink); border:1.5px solid #cfc6ac; }
+  .btn-alt{ background: var(--accent-2); color:#fff; }
+  .btn-good{ background: var(--good); color:#fff; }
+  .btn-block{ width:100%; }
+
+  .toast{
+    font-size:12.5px; font-weight:700; color:#fff; background: var(--bad);
+    padding:8px 10px; border-radius:6px; opacity:0; transform: translateY(-4px);
+    transition: opacity .18s ease, transform .18s ease; pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:none; }
+
+  /* ---------- reveal ---------- */
+  .reveal-box{ display:flex; flex-direction:column; gap:12px; border-top:1px dashed #cfc6ac; padding-top:14px; }
+  .reveal-box[hidden]{ display:none; }
+  .feedback{ border-radius:6px; padding:10px 12px; font-size:13.5px; line-height:1.5; font-weight:600; }
+  .feedback.optimal{ background:#e3f6ec; color:#116b3f; border:1px solid #b7e6cb; }
+  .feedback.ok{ background:#fdf1de; color:#8a5410; border:1px solid #f0d8a8; }
+  .algo-buttons{ display:flex; gap:8px; }
+  .live-panel{
+    background:#12233a; color:#dfeaf5; border-radius:7px; padding:10px 12px;
+    font-family:var(--font-mono); font-size:12px; line-height:1.7; min-height:64px;
+  }
+  .live-panel .k{ color: var(--gold); }
+  .found-line{ font-size:12.5px; color:var(--panel-ink-dim); }
+  .compare-note{ font-size:12.5px; background:#eef3fb; border-left:4px solid var(--accent-2); border-radius:4px; padding:9px 11px; line-height:1.5; display:none; }
+  .compare-note.show{ display:block; }
+
+  .quiz{ display:none; flex-direction:column; gap:9px; border-top:1px dashed #cfc6ac; padding-top:12px; }
+  .quiz.show{ display:flex; }
+  .quiz-q{ font-size:13.5px; font-weight:700; }
+  .quiz-opts{ display:flex; flex-direction:column; gap:6px; }
+  .quiz-opt{
+    text-align:left; background:#fff; color: var(--panel-ink); border:1.5px solid #d8d0b8; border-radius:6px;
+    padding:8px 10px; font-size:12.8px; cursor:pointer;
+  }
+  .quiz-opt:hover{ border-color: var(--accent); }
+  .quiz-opt.correct{ background:#e3f6ec; border-color: var(--good); }
+  .quiz-opt.wrong{ background:#fbe8e6; border-color: var(--bad); }
+  .quiz-why{ font-size:12.5px; color:var(--panel-ink-dim); display:none; line-height:1.5; }
+  .quiz-why.show{ display:block; }
+
+  /* ---------- graph panel ---------- */
+  .graph-panel{
+    background: rgba(255,255,255,.03); border:1px solid var(--line); border-radius:10px;
+    padding:14px; display:flex; flex-direction:column; gap:10px;
+  }
+  #graph-svg{ width:100%; height:auto; aspect-ratio: 100/60; display:block; }
+  .edge{ stroke: var(--line); stroke-width:.7; }
+  .edge.traveled{ stroke: var(--gold); stroke-width:1.3; }
+  .edge.shortest{ stroke: var(--good); stroke-width:1.1; stroke-dasharray:2 1.4; }
+  .node-circle{ stroke:#03101f; stroke-width:.5; cursor:pointer; transition: fill .25s ease, r .2s ease; }
+  .node-circle.normal{ fill:#dfe9f4; }
+  .node-circle.start{ fill: var(--good); }
+  .node-circle.end{ fill: var(--bad); }
+  .node-circle.in-path{ fill: var(--gold); }
+  .node-circle.visiting{ fill:#fff; r:6.6; }
+  .node-circle.visited-bfs{ fill: var(--accent-2); }
+  .node-circle.visited-dfs{ fill: var(--accent); }
+  .node-g[data-clickable="0"] .node-circle{ cursor:default; opacity:.55; }
+  .node-label{ font-family:var(--font-mono); font-size:4.1px; font-weight:700; fill:#08131f; text-anchor:middle; pointer-events:none; }
+  .node-role{ font-family:var(--font-body); font-size:2.9px; fill:var(--ink-dim); pointer-events:none; }
+  .node-order{ font-family:var(--font-mono); font-size:3.4px; font-weight:700; fill:#08131f; text-anchor:middle; pointer-events:none; }
+
+  .legend{ display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color: var(--ink-dim); }
+  .legend .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .dot.start{ background: var(--good); } .dot.end{ background: var(--bad); } .dot.path{ background: var(--gold); }
+
+  .board-footer{ display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between; }
+  .progress-dots{ display:flex; gap:8px; }
+  .p-dot{ width:11px; height:11px; border-radius:50%; background: rgba(255,255,255,.14); border:1px solid var(--line); }
+  .p-dot.done{ background: var(--good); border-color: var(--good); }
+  .p-dot.current{ background: var(--accent); border-color: var(--accent); }
+  .hint{ font-size:12px; color: var(--ink-dim); }
+
+  /* ---------- modals ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background: rgba(3,10,20,.78); display:flex; align-items:center; justify-content:center;
+    padding:20px; z-index:20;
+  }
+  .modal-backdrop[hidden]{ display:none; }
+  .modal-card{
+    background: var(--panel); color: var(--panel-ink); border-radius:12px; max-width:460px; width:100%;
+    padding:26px 26px 22px; box-shadow: 0 30px 60px rgba(0,0,0,.5);
+  }
+  .modal-card h2{ font-size:22px; margin-bottom:10px; }
+  .modal-card p, .modal-card li{ font-size:13.5px; line-height:1.55; color: var(--panel-ink-dim); }
+  .modal-card ol{ padding-left:20px; margin:10px 0 16px; display:flex; flex-direction:column; gap:6px; }
+  .modal-card li strong{ color: var(--panel-ink); }
+  .rank-line{ font-family:var(--font-display); font-size:26px; color: var(--accent); margin: 6px 0 2px; }
+  .final-score{ font-family:var(--font-mono); font-size:38px; font-weight:700; color:var(--panel-ink); }
+  .best-line{ font-size:12px; color: var(--panel-ink-dim); margin-top:4px; }
+
+  .name-field{ margin: 14px 0 4px; }
+  .name-field label{ display:block; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color: var(--panel-ink-dim); margin-bottom:5px; }
+  .name-field input{
+    width:100%; font-family:var(--font-body); font-size:14px; padding:9px 11px;
+    border:1.5px solid #cfc6ac; border-radius:6px; background:#fff; color: var(--panel-ink);
+  }
+  .name-warn{ font-size:11.5px; color: var(--bad); margin-top:5px; display:none; }
+  .name-warn.show{ display:block; }
+
+  .tutorial-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin: 14px 0; }
+  @media (max-width: 520px){ .tutorial-grid{ grid-template-columns: 1fr; } }
+  .tutorial-card{ background:#fff; border:1.5px solid #e3dcc4; border-radius:8px; padding:10px; }
+  .tutorial-card h3{ font-family:var(--font-body); font-weight:800; font-size:13px; margin-bottom:6px; }
+  .tutorial-card.bfs h3{ color: var(--accent-2); }
+  .tutorial-card.dfs h3{ color: var(--accent); }
+  .tutorial-card svg{ width:100%; height:auto; display:block; }
+  .tutorial-card p{ font-size:11.5px; color: var(--panel-ink-dim); line-height:1.45; margin-top:6px; }
+
+  .board-panel{ background:#fff; border:1.5px solid #e3dcc4; border-radius:8px; overflow:hidden; }
+  .board-row{
+    display:flex; align-items:center; gap:10px; padding:8px 12px; font-size:13px;
+    border-bottom:1px solid #f0ebd8; color: var(--panel-ink);
+  }
+  .board-row:last-child{ border-bottom:none; }
+  .board-row.me{ background:#fdf1de; font-weight:700; }
+  .board-rank{ font-family:var(--font-mono); color: var(--panel-ink-dim); width:22px; }
+  .board-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .board-case{ font-size:11px; color: var(--panel-ink-dim); }
+  .board-score{ font-family:var(--font-mono); font-weight:700; color: var(--accent); }
+  .board-empty{ padding:16px 12px; font-size:12.5px; color: var(--panel-ink-dim); text-align:center; }
+
+  /* ---------- rodapé de créditos ---------- */
+  .site-footer{
+    border-top: 1px dashed var(--line); margin-top: 4px; padding-top: 18px;
+    display:flex; flex-direction:column; gap:6px; text-align:center;
+    color: var(--ink-dim); font-size:12.5px; line-height:1.55;
+  }
+  .site-footer .foot-title{ font-family:var(--font-display); color:#fff; font-size:14px; letter-spacing:.02em; }
+  .site-footer a{ color: var(--accent-2); text-decoration:none; }
+  .site-footer a:hover{ text-decoration:underline; }
+  .site-footer .foot-links{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; font-family:var(--font-mono); font-size:12px; }
+  .site-footer .foot-note{ font-size:11.5px; color: var(--ink-dim); max-width:70ch; margin:2px auto 0; opacity:.85; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; animation:none !important; }
+  }
+</style>
+
+<div class="app">
+  <header class="board-header">
+    <div class="brand">
+      <span class="badge">CASO ABERTO · MÓDULO GRAFOS</span>
+      <h1>Detetive dos Grafos</h1>
+      <p class="tagline">Ache o caminho mais curto até o suspeito. Depois, compare como a Fila (BFS) e a Pilha (DFS) investigam o mesmo mapa de formas diferentes.</p>
+    </div>
+    <div class="stats" aria-live="polite">
+      <div class="stat"><span class="stat-label">Caso</span><span class="stat-value" id="stat-level">1/5</span></div>
+      <div class="stat"><span class="stat-label">Pontos</span><span class="stat-value" id="stat-score">0</span></div>
+      <div class="stat"><span class="stat-label">Sequência</span><span class="stat-value" id="stat-streak">0×</span></div>
+      <div class="stat"><span class="stat-label">Tempo</span><span class="stat-value" id="stat-time">00:00</span></div>
+      <button class="btn-board" id="btn-leaderboard">🏆 Placar da turma</button>
+    </div>
+  </header>
+
+  <main class="board-main">
+    <section class="case-panel">
+      <h2 id="case-title">Caso 1</h2>
+      <p class="case-blurb" id="case-blurb"></p>
+
+      <div class="mission">
+        <strong>Missão</strong><br>
+        <span id="mission-text">Clique nos nós conectados para levar o detetive (verde) até o suspeito (vermelho) pelo caminho MAIS CURTO possível.</span>
+      </div>
+
+      <div class="path-readout"><span class="path-label">Sua rota</span><span id="path-readout" class="mono">—</span></div>
+      <div class="toast" id="toast">Não há conexão direta daqui.</div>
+
+      <div class="controls" id="path-controls">
+        <button class="btn btn-ghost" id="btn-undo">Desfazer</button>
+        <button class="btn btn-ghost" id="btn-reset">Reiniciar rota</button>
+        <button class="btn btn-primary" id="btn-submit" disabled>Enviar rota</button>
+      </div>
+
+      <div class="reveal-box" id="reveal-box" hidden>
+        <div class="feedback" id="feedback"></div>
+
+        <div class="algo-buttons">
+          <button class="btn btn-alt" id="btn-bfs">Investigar em Fila (BFS)</button>
+          <button class="btn btn-primary" id="btn-dfs">Investigar em Pilha (DFS)</button>
+        </div>
+        <div class="live-panel" id="live-panel">Escolha uma investigação acima para ver a estrutura em ação.</div>
+        <p class="found-line" id="found-line"></p>
+        <p class="compare-note" id="compare-note"></p>
+
+        <div class="quiz" id="quiz">
+          <p class="quiz-q" id="quiz-q"></p>
+          <div class="quiz-opts" id="quiz-opts"></div>
+          <p class="quiz-why" id="quiz-why"></p>
+        </div>
+
+        <button class="btn btn-good btn-block" id="btn-next" hidden>Próximo caso</button>
+      </div>
+    </section>
+
+    <section class="graph-panel">
+      <svg id="graph-svg" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Mapa do caso atual"></svg>
+      <div class="legend">
+        <span><i class="dot start"></i>Cena do crime</span>
+        <span><i class="dot end"></i>Suspeito</span>
+        <span><i class="dot path"></i>Sua rota</span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="board-footer">
+    <div class="progress-dots" id="progress-dots"></div>
+    <p class="hint">Dica: você só pode clicar num nó ligado por uma linha ao último nó da sua rota.</p>
+  </footer>
+
+  <footer class="site-footer">
+    <p class="foot-title">Detetive dos Grafos · Prof. William Corrêa Mendes</p>
+    <p>&copy; 2026 · Material educacional de Estruturas de Dados (grafos, BFS e DFS)</p>
+    <p>
+      Currículo Lattes:
+      <a href="https://lattes.cnpq.br/7726054867638395" target="_blank" rel="noopener">lattes.cnpq.br/7726054867638395</a>
+    </p>
+    <p class="foot-links">
+      <a href="https://github.com/wcmendes/jogografos" target="_blank" rel="noopener">Repositório</a> ·
+      <a href="https://github.com/wcmendes/ed_modulo1" target="_blank" rel="noopener">Módulo I</a> ·
+      <a href="https://github.com/wcmendes/ed_modulo2" target="_blank" rel="noopener">Módulo II</a> ·
+      <a href="https://github.com/wcmendes/ed_modulo3" target="_blank" rel="noopener">Módulo III</a>
+    </p>
+    <p class="foot-note">
+      Material educacional para fins acadêmicos. Reprodução, adaptação e distribuição
+      permitidas, desde que dado o devido crédito ao autor.
+    </p>
+  </footer>
+</div>
+
+<div class="modal-backdrop" id="intro-modal">
+  <div class="modal-card">
+    <span class="badge">FICHA DO CASO</span>
+    <h2>Bem-vindo(a), detetive</h2>
+    <p>Cinco casos. Em cada um, um mapa liga pontos da cidade. Sua missão:</p>
+    <ol>
+      <li><strong>1. Trace a rota</strong> — clique nos nós vizinhos até ligar a cena do crime ao suspeito, no menor número de passos possível.</li>
+      <li><strong>2. Compare os métodos</strong> — veja como o BFS (fila) e o DFS (pilha) investigariam o mesmo mapa inteiro.</li>
+      <li><strong>3. Responda rápido</strong> — uma pergunta relâmpago por caso vale pontos extras.</li>
+    </ol>
+    <div class="name-field">
+      <label for="player-name">Seu nome (aparece no placar da turma)</label>
+      <input type="text" id="player-name" maxlength="24" placeholder="Ex.: Ana Souza" autocomplete="off">
+      <p class="name-warn" id="name-warn">Digite um nome pra entrar no placar da turma.</p>
+    </div>
+    <div class="name-field">
+      <label for="room-code">Código da sala (o professor passa na aula)</label>
+      <input type="text" id="room-code" inputmode="numeric" maxlength="4" placeholder="Ex.: 4271" autocomplete="off">
+      <p class="name-warn" id="room-warn">Digite o código de 4 dígitos da sala.</p>
+      <p style="font-size:11.5px; color:var(--panel-ink-dim); margin-top:6px; line-height:1.45;">O código separa o placar da sua turma do placar de outras turmas/datas. Sem ele, você joga normalmente, mas fica de fora do placar compartilhado.</p>
+    </div>
+    <button class="btn btn-primary btn-block" id="btn-start">Continuar</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="tutorial-modal" hidden>
+  <div class="modal-card">
+    <span class="badge">ANTES DE COMEÇAR</span>
+    <h2>Duas formas de investigar</h2>
+    <p>Toda vez que você resolver um caso, vai poder ver como dois métodos clássicos exploram o mesmo mapa inteiro, a partir da cena do crime.</p>
+    <div class="tutorial-grid">
+      <div class="tutorial-card bfs">
+        <h3>BFS · Fila · "por camadas"</h3>
+        <svg viewBox="0 0 100 78">
+          <line x1="50" y1="14" x2="18" y2="40" stroke="#c9d3dd" stroke-width="2"/>
+          <line x1="50" y1="14" x2="82" y2="40" stroke="#c9d3dd" stroke-width="2"/>
+          <line x1="18" y1="40" x2="50" y2="66" stroke="#c9d3dd" stroke-width="2"/>
+          <line x1="82" y1="40" x2="50" y2="66" stroke="#c9d3dd" stroke-width="2"/>
+          <circle cx="50" cy="14" r="10" fill="#0a2f54"/>
+          <text x="50" y="18" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="JetBrains Mono, monospace">0</text>
+          <circle cx="18" cy="40" r="10" fill="#4d9de0"/>
+          <text x="18" y="44" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="JetBrains Mono, monospace">1</text>
+          <circle cx="82" cy="40" r="10" fill="#4d9de0"/>
+          <text x="82" y="44" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="JetBrains Mono, monospace">1</text>
+          <circle cx="50" cy="66" r="10" fill="#a9c9e8"/>
+          <text x="50" y="70" text-anchor="middle" font-size="9" font-weight="700" fill="#0a2f54" font-family="JetBrains Mono, monospace">2</text>
+        </svg>
+        <p>Os números são a <strong>camada</strong> (não a ordem). O BFS visita TODOS os vizinhos diretos (camada 1) antes de olhar qualquer vizinho deles (camada 2) — como uma fila, quem chega primeiro é atendido primeiro.</p>
+      </div>
+      <div class="tutorial-card dfs">
+        <h3>DFS · Pilha · "até o fim"</h3>
+        <svg viewBox="0 0 100 78">
+          <line x1="50" y1="14" x2="18" y2="40" stroke="#f0d6ba" stroke-width="2"/>
+          <line x1="50" y1="14" x2="82" y2="40" stroke="#e3dcc4" stroke-width="2"/>
+          <line x1="18" y1="40" x2="50" y2="66" stroke="#f0d6ba" stroke-width="2"/>
+          <line x1="82" y1="40" x2="50" y2="66" stroke="#e3dcc4" stroke-width="2"/>
+          <circle cx="50" cy="14" r="10" fill="#e2711d"/>
+          <text x="50" y="18" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="JetBrains Mono, monospace">1</text>
+          <circle cx="18" cy="40" r="10" fill="#e2711d"/>
+          <text x="18" y="44" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="JetBrains Mono, monospace">2</text>
+          <circle cx="82" cy="40" r="10" fill="#f0d6ba"/>
+          <text x="82" y="44" text-anchor="middle" font-size="9" font-weight="700" fill="#8a5410" font-family="JetBrains Mono, monospace">4</text>
+          <circle cx="50" cy="66" r="10" fill="#e2711d"/>
+          <text x="50" y="70" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="JetBrains Mono, monospace">3</text>
+        </svg>
+        <p>Agora os números são a <strong>ordem</strong>: o DFS mergulha por UM caminho até o fim (1→2→3) e só depois volta pra explorar o que ficou pra trás (4) — como uma pilha de decisões.</p>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" id="btn-tutorial-ok">Entendi, vamos ao Caso 1</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="leaderboard-modal" hidden>
+  <div class="modal-card">
+    <span class="badge">AO VIVO</span>
+    <h2>Placar da turma</h2>
+    <p id="board-status" style="margin-bottom:12px;">Carregando...</p>
+    <div class="board-panel" id="board-panel"></div>
+    <button class="btn btn-alt btn-block" id="btn-board-reset" style="margin-top:14px;" hidden>🗑️ Resetar placar da sala</button>
+    <button class="btn btn-ghost btn-block" id="btn-board-close" style="margin-top:10px;">Fechar</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="end-modal" hidden>
+  <div class="modal-card">
+    <span class="badge">CASO ENCERRADO</span>
+    <h2>Relatório final</h2>
+    <p class="rank-line" id="rank-line">Detetive Pleno</p>
+    <p class="final-score" id="final-score">0</p>
+    <p class="best-line" id="best-line"></p>
+    <p style="margin-top:12px;">Reveja a ideia central: o BFS anda em camadas e por isso sempre acha o caminho mais curto; o DFS mergulha fundo primeiro e pode demorar mais para chegar — mesmo chegando lá.</p>
+    <button class="btn btn-primary btn-block" id="btn-restart" style="margin-top:14px;">Jogar novamente</button>
+  </div>
+</div>
+
+<!-- =====================================================================
+     🔥 BRIDGE FIREBASE — PLACAR EM TEMPO REAL (Firestore Web SDK v9 modular)
+     Este bloco é um módulo ES separado, carregado via CDN modular do Firebase.
+     Ele NÃO altera a lógica do jogo: apenas expõe window.__fbSync, que o
+     objeto `sync` do jogo (mais abaixo) consome. Se o Firebase falhar ao
+     carregar (offline, CDN bloqueado, config inválida), o jogo continua
+     funcionando 100% — só o placar da turma fica indisponível.
+
+     👉 COLE AQUI A SUA firebaseConfig (gerada no console do Firebase ou via
+        `firebase apps:sdkconfig WEB`). Veja o DEPLOY.md para o passo a passo.
+     ==================================================================== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, doc, setDoc, onSnapshot,
+    getDocs, deleteDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // ---------------------------------------------------------------------
+  // Configuração do seu projeto Firebase. Substitua os valores abaixo.
+  // Enquanto os placeholders estiverem aqui, isReady() retorna false e o
+  // jogo mostra "placar não configurado" (sem quebrar nada).
+  // ---------------------------------------------------------------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6TO5BAhlXMN9nxnTXQDjN0l960cHUakM",
+    authDomain: "jogografos.firebaseapp.com",
+    projectId: "jogografos",
+    storageBucket: "jogografos.firebasestorage.app",
+    messagingSenderId: "803774518733",
+    appId: "1:803774518733:web:3d3796730105413f09a084"
+  };
+
+  const CONFIGURED = !/^COLE_/.test(firebaseConfig.apiKey || "COLE_");
+
+  let db = null;
+  let ready = false;
+  let roomCode = null;
+
+  if (CONFIGURED) {
+    try {
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      ready = true;
+    } catch (err) {
+      console.error("[Detetive dos Grafos] Falha ao inicializar Firebase:", err);
+      ready = false;
+    }
+  } else {
+    console.warn("[Detetive dos Grafos] firebaseConfig ainda não preenchida — placar da turma desativado.");
+  }
+
+  // Sanitiza o código da sala: só dígitos, exatamente 4 chars (igual às
+  // regras de segurança do Firestore). Qualquer coisa diferente vira null.
+  function normalizeRoom(code) {
+    const digits = String(code || "").replace(/\D/g, "").slice(0, 4);
+    return digits.length === 4 ? digits : null;
+  }
+
+  function leaderboardCol() {
+    if (!db || !roomCode) return null;
+    // salas/{codigoDaSala}/leaderboard
+    return collection(db, "salas", roomCode, "leaderboard");
+  }
+
+  window.__fbSync = {
+    // Indica se o Firebase foi inicializado com uma config válida.
+    isReady() { return ready && !!roomCode; },
+
+    // Define/atualiza o código da sala (chamado quando o aluno entra).
+    setRoom(code) { roomCode = normalizeRoom(code) || null; return roomCode; },
+
+    getRoom() { return roomCode; },
+
+    // Grava/atualiza o documento do aluno (fire-and-forget).
+    // payload = {name, score, level, totalLevels, streak, updatedAt}
+    writeScore(playerId, payload) {
+      const col = leaderboardCol();
+      if (!col || !playerId) return;
+      const ref = doc(col, String(playerId));
+      // Monta apenas os campos permitidos pelas regras de segurança.
+      const data = {
+        name: String(payload.name || "").slice(0, 24),
+        score: Number(payload.score) || 0,
+        level: Number(payload.level) || 0,
+        totalLevels: Number(payload.totalLevels) || 0,
+        streak: Number(payload.streak) || 0,
+        updatedAt: serverTimestamp()
+      };
+      setDoc(ref, data, { merge: true }).catch(function (err) {
+        console.warn("[Detetive dos Grafos] writeScore falhou:", err && err.code);
+      });
+    },
+
+    // Assina o placar em tempo real. onUpdate recebe um array de
+    // {id, name, score, level, totalLevels}. Retorna a função unsubscribe.
+    subscribeLeaderboard(onUpdate) {
+      const col = leaderboardCol();
+      if (!col) { return function () {}; }
+      const unsub = onSnapshot(col, function (snap) {
+        const rows = [];
+        snap.forEach(function (d) {
+          const v = d.data() || {};
+          rows.push({
+            id: d.id,
+            name: v.name || "Detetive",
+            score: Number(v.score) || 0,
+            level: Number(v.level) || 0,
+            totalLevels: Number(v.totalLevels) || 0
+          });
+        });
+        try { onUpdate(rows); } catch (e) { /* UI protegida */ }
+      }, function (err) {
+        console.warn("[Detetive dos Grafos] subscribeLeaderboard erro:", err && err.code);
+      });
+      return unsub;
+    },
+
+    // Apaga TODOS os documentos do placar da sala atual (usado pelo botão
+    // "Resetar placar da sala"). Retorna uma Promise.
+    async resetRoom() {
+      const col = leaderboardCol();
+      if (!col) return;
+      const snap = await getDocs(col);
+      const jobs = [];
+      snap.forEach(function (d) { jobs.push(deleteDoc(d.ref)); });
+      await Promise.all(jobs);
+    }
+  };
+</script>
+
+<script>
+(function(){
+  "use strict";
+  var REDUCE = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var STEP_DELAY = REDUCE ? 60 : 620;
+
+  // =====================================================================
+  // 🔌 PONTO DE INTEGRAÇÃO — PLACAR COMPARTILHADO EM TEMPO REAL
+  // Troque as funções abaixo por uma implementação real de backend
+  // (Firebase Firestore, Supabase, um servidor próprio...). Sem isso, o
+  // jogo funciona 100% sozinho — cada aluno joga normalmente, só o
+  // placar da turma fica indisponível (mensagem já tratada na UI).
+  // =====================================================================
+  // Implementação ligada ao Firebase Firestore. Cada função apenas delega
+  // para o bridge window.__fbSync (definido no <script type="module"> acima).
+  // Se o bridge não existir (Firebase não carregou), tudo vira no-op seguro
+  // e o jogo segue funcionando sem placar compartilhado.
+  var sync = {
+    // Carregado junto com a página. O bridge modular já inicializa o
+    // Firebase por conta própria; aqui não há nada a fazer, mas mantemos
+    // o hook para compatibilidade.
+    init: function(){ /* bridge Firebase inicializa sozinho */ },
+
+    // Define o código da sala escolhido pelo aluno. Deve ser chamado
+    // antes de ler/escrever no placar.
+    setRoom: function(code){
+      return (window.__fbSync && window.__fbSync.setRoom) ? window.__fbSync.setRoom(code) : null;
+    },
+
+    getRoom: function(){
+      return (window.__fbSync && window.__fbSync.getRoom) ? window.__fbSync.getRoom() : null;
+    },
+
+    // Pronto para leitura/escrita: Firebase inicializado E sala definida.
+    isReady: function(){
+      return !!(window.__fbSync && window.__fbSync.isReady && window.__fbSync.isReady());
+    },
+
+    // Grava/atualiza o documento do jogador (fire-and-forget).
+    // payload = {name, score, level, totalLevels, streak, updatedAt}
+    writeScore: function(playerId, payload){
+      if(window.__fbSync && window.__fbSync.writeScore){
+        window.__fbSync.writeScore(playerId, payload);
+      }
+    },
+
+    // Assina o placar em tempo real via onSnapshot. Retorna unsubscribe.
+    subscribeLeaderboard: function(onUpdate){
+      if(window.__fbSync && window.__fbSync.subscribeLeaderboard){
+        return window.__fbSync.subscribeLeaderboard(onUpdate);
+      }
+      return function(){};
+    },
+
+    // Apaga todo o placar da sala atual. Retorna uma Promise.
+    resetRoom: function(){
+      if(window.__fbSync && window.__fbSync.resetRoom){
+        return window.__fbSync.resetRoom();
+      }
+      return Promise.resolve();
+    }
+  };
+
+  var LEVELS = [
+    {
+      title: "O Bilhete Perdido",
+      blurb: "Um bilhete anônimo aponta o esconderijo. Ligue a cena do crime (A) ao suspeito (E) pelo caminho mais curto.",
+      start: "A", end: "E",
+      nodes: [
+        {id:"A", x:8,  y:30, role:"Cena do crime"},
+        {id:"B", x:32, y:10, role:""},
+        {id:"C", x:32, y:50, role:""},
+        {id:"D", x:62, y:30, role:""},
+        {id:"E", x:92, y:30, role:"Suspeito"}
+      ],
+      edges: [["A","B"],["A","C"],["B","D"],["C","D"],["D","E"]]
+    },
+    {
+      title: "A Rota da Fuga",
+      blurb: "Câmeras de trânsito mapearam os cruzamentos. Encontre o caminho mais curto até o carro de fuga (F).",
+      start: "A", end: "F",
+      nodes: [
+        {id:"A", x:7,  y:30, role:"Cena do crime"},
+        {id:"B", x:27, y:10, role:""},
+        {id:"C", x:27, y:50, role:""},
+        {id:"D", x:50, y:30, role:""},
+        {id:"E", x:72, y:10, role:""},
+        {id:"F", x:93, y:30, role:"Suspeito"}
+      ],
+      edges: [["A","B"],["A","C"],["B","D"],["C","D"],["D","E"],["D","F"],["E","F"]]
+    },
+    {
+      title: "O Mapa do Contrabando",
+      blurb: "Nem sempre o caminho mais óbvio é o mais curto. Alguns becos são atalhos escondidos.",
+      start: "A", end: "G",
+      nodes: [
+        {id:"A", x:7,  y:30, role:"Cena do crime"},
+        {id:"B", x:25, y:10, role:""},
+        {id:"C", x:25, y:50, role:""},
+        {id:"D", x:45, y:10, role:""},
+        {id:"E", x:45, y:50, role:""},
+        {id:"F", x:68, y:30, role:""},
+        {id:"G", x:93, y:30, role:"Suspeito"}
+      ],
+      edges: [["A","B"],["A","C"],["B","D"],["C","E"],["D","F"],["E","F"],["C","F"],["F","G"]]
+    },
+    {
+      title: "A Rede de Informantes",
+      blurb: "Vários informantes conhecem pedaços do caminho. O mapa fica mais denso — atenção redobrada.",
+      start: "A", end: "H",
+      nodes: [
+        {id:"A", x:6,  y:30, role:"Cena do crime"},
+        {id:"B", x:23, y:12, role:""},
+        {id:"C", x:23, y:48, role:""},
+        {id:"D", x:41, y:30, role:""},
+        {id:"E", x:59, y:12, role:""},
+        {id:"F", x:59, y:48, role:""},
+        {id:"G", x:77, y:30, role:""},
+        {id:"H", x:94, y:30, role:"Suspeito"}
+      ],
+      edges: [["A","B"],["A","C"],["B","D"],["C","D"],["D","E"],["D","F"],["E","G"],["F","G"],["G","H"]]
+    },
+    {
+      title: "O Esconderijo Final",
+      blurb: "O caso mais complexo: nove pontos, várias rotas possíveis. Só o caminho mínimo fecha o caso com honras.",
+      start: "A", end: "I",
+      nodes: [
+        {id:"A", x:5,  y:30, role:"Cena do crime"},
+        {id:"B", x:20, y:10, role:""},
+        {id:"C", x:20, y:50, role:""},
+        {id:"D", x:37, y:30, role:""},
+        {id:"E", x:54, y:8,  role:""},
+        {id:"F", x:54, y:30, role:""},
+        {id:"G", x:54, y:52, role:""},
+        {id:"H", x:74, y:30, role:""},
+        {id:"I", x:94, y:30, role:"Suspeito"}
+      ],
+      edges: [["A","B"],["A","C"],["B","D"],["C","D"],["D","E"],["D","F"],["D","G"],["E","H"],["F","H"],["G","H"],["H","I"]]
+    }
+  ];
+
+  var QUIZ = [
+    { q:"O BFS (busca em largura) usa qual estrutura para decidir a ordem de visita?",
+      opts:["Pilha (LIFO)","Fila (FIFO)","Tabela Hash","Árvore binária"], correct:1,
+      why:"O BFS enfileira os vizinhos e sempre processa quem chegou primeiro — como uma fila de banco." },
+    { q:"O DFS (busca em profundidade) se comporta como qual estrutura?",
+      opts:["Fila (FIFO)","Pilha (LIFO) ou recursão","Tabela Hash","Vetor ordenado"], correct:1,
+      why:"O DFS mergulha por um caminho até o fim e só recua quando não há mais saída — o padrão 'último a entrar, primeiro a sair' de uma pilha." },
+    { q:"Toda árvore também é um tipo especial de grafo. O que a torna diferente de um grafo qualquer?",
+      opts:["Uma árvore não tem ciclos e tem uma raiz única","Uma árvore só pode ter 2 nós","Uma árvore não pode ser desenhada","Uma árvore não tem conexões"], correct:0,
+      why:"Árvore = grafo conectado, sem ciclos, com uma raiz. Um grafo genérico, como este mapa, pode ter ciclos e várias conexões livres." },
+    { q:"Para achar um suspeito pelo NÚMERO DO RG (acesso direto por chave), qual estrutura é mais rápida que percorrer este grafo?",
+      opts:["Pilha","Fila","Tabela Hash","Lista encadeada"], correct:2,
+      why:"A tabela hash acha um valor pelo índice calculado da chave — O(1) em média — sem precisar percorrer nós como fizemos aqui." },
+    { q:"Por que o BFS sempre encontra o caminho com MENOS passos num grafo sem peso?",
+      opts:["Porque visita em ordem alfabética","Porque explora camada por camada, só avançando quando esgota a distância atual","Porque usa menos memória que o DFS","Porque é sempre mais rápido de rodar"], correct:1,
+      why:"Como o BFS se espalha em ondas a partir do início, a primeira vez que ele alcança o destino é, necessariamente, pelo caminho com menos arestas." }
+  ];
+
+  var state = {
+    level: 0, score: 0, streak: 0,
+    path: [], adj: {}, phase: "playing",
+    timerId: null, startTime: 0, elapsed: 0,
+    bfsRes: null, dfsRes: null, shortest: null,
+    quizAnswered: false, bfsPlayed:false, dfsPlayed:false,
+    playerId: null, playerName: "Detetive", boardUnsub: null,
+    roomCode: null
+  };
+
+  var svg = document.getElementById("graph-svg");
+  var el = {
+    level: document.getElementById("stat-level"),
+    score: document.getElementById("stat-score"),
+    streak: document.getElementById("stat-streak"),
+    time: document.getElementById("stat-time"),
+    title: document.getElementById("case-title"),
+    blurb: document.getElementById("case-blurb"),
+    missionText: document.getElementById("mission-text"),
+    pathReadout: document.getElementById("path-readout"),
+    toast: document.getElementById("toast"),
+    controls: document.getElementById("path-controls"),
+    btnUndo: document.getElementById("btn-undo"),
+    btnReset: document.getElementById("btn-reset"),
+    btnSubmit: document.getElementById("btn-submit"),
+    revealBox: document.getElementById("reveal-box"),
+    feedback: document.getElementById("feedback"),
+    btnBfs: document.getElementById("btn-bfs"),
+    btnDfs: document.getElementById("btn-dfs"),
+    livePanel: document.getElementById("live-panel"),
+    foundLine: document.getElementById("found-line"),
+    compareNote: document.getElementById("compare-note"),
+    quiz: document.getElementById("quiz"),
+    quizQ: document.getElementById("quiz-q"),
+    quizOpts: document.getElementById("quiz-opts"),
+    quizWhy: document.getElementById("quiz-why"),
+    btnNext: document.getElementById("btn-next"),
+    dots: document.getElementById("progress-dots"),
+    introModal: document.getElementById("intro-modal"),
+    endModal: document.getElementById("end-modal"),
+    btnStart: document.getElementById("btn-start"),
+    btnRestart: document.getElementById("btn-restart"),
+    rankLine: document.getElementById("rank-line"),
+    finalScore: document.getElementById("final-score"),
+    bestLine: document.getElementById("best-line"),
+    nameInput: document.getElementById("player-name"),
+    nameWarn: document.getElementById("name-warn"),
+    roomInput: document.getElementById("room-code"),
+    roomWarn: document.getElementById("room-warn"),
+    btnBoardReset: document.getElementById("btn-board-reset"),
+    tutorialModal: document.getElementById("tutorial-modal"),
+    btnTutorialOk: document.getElementById("btn-tutorial-ok"),
+    btnLeaderboard: document.getElementById("btn-leaderboard"),
+    leaderboardModal: document.getElementById("leaderboard-modal"),
+    boardStatus: document.getElementById("board-status"),
+    boardPanel: document.getElementById("board-panel"),
+    btnBoardClose: document.getElementById("btn-board-close")
+  };
+
+  function buildAdjacency(level){
+    var adj = {};
+    level.nodes.forEach(function(n){ adj[n.id] = []; });
+    level.edges.forEach(function(e){ adj[e[0]].push(e[1]); adj[e[1]].push(e[0]); });
+    return adj;
+  }
+
+  function bfsShortestPath(adj, start, end){
+    var visited = {}; visited[start] = true;
+    var parent = {};
+    var queue = [start];
+    while(queue.length){
+      var cur = queue.shift();
+      if(cur === end) break;
+      var nbs = adj[cur];
+      for(var i=0;i<nbs.length;i++){
+        var nb = nbs[i];
+        if(!visited[nb]){ visited[nb] = true; parent[nb] = cur; queue.push(nb); }
+      }
+    }
+    if(!visited[end]) return null;
+    var path = [end], c = end;
+    while(c !== start){ c = parent[c]; path.push(c); }
+    path.reverse();
+    return path;
+  }
+
+  function bfsTraversal(adj, start){
+    var visited = {}; visited[start] = true;
+    var queue = [start];
+    var order = [], snapshots = [];
+    while(queue.length){
+      var cur = queue.shift();
+      order.push(cur);
+      var nbs = adj[cur];
+      for(var i=0;i<nbs.length;i++){
+        var nb = nbs[i];
+        if(!visited[nb]){ visited[nb] = true; queue.push(nb); }
+      }
+      snapshots.push({ queue: queue.slice(), current: cur });
+    }
+    return { order: order, snapshots: snapshots };
+  }
+
+  function dfsTraversal(adj, start){
+    var visited = {};
+    var stack = [start];
+    var order = [], snapshots = [];
+    while(stack.length){
+      var cur = stack.pop();
+      if(visited[cur]) continue;
+      visited[cur] = true;
+      order.push(cur);
+      var nbs = adj[cur].filter(function(n){ return !visited[n]; });
+      for(var i=nbs.length-1;i>=0;i--) stack.push(nbs[i]);
+      snapshots.push({ stack: stack.slice(), current: cur });
+    }
+    return { order: order, snapshots: snapshots };
+  }
+
+  function rankFor(score){
+    if(score >= 1250) return "Detetive Lendário";
+    if(score >= 900) return "Detetive Sênior";
+    if(score >= 550) return "Detetive Pleno";
+    return "Detetive em Treinamento";
+  }
+
+  function fmtTime(sec){
+    var m = Math.floor(sec/60), s = Math.floor(sec%60);
+    return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+  }
+
+  function safeGet(key){
+    try{ return window.localStorage.getItem(key); }catch(e){ return null; }
+  }
+  function safeSet(key, val){
+    try{ window.localStorage.setItem(key, val); }catch(e){ /* ignore */ }
+  }
+
+  function getPlayerId(){
+    var id = safeGet("detetive-grafos-player-id");
+    if(!id){
+      try{ id = crypto.randomUUID(); }
+      catch(e){ id = "p" + Date.now() + "-" + Math.random().toString(36).slice(2); }
+      safeSet("detetive-grafos-player-id", id);
+    }
+    return id;
+  }
+
+  function writeScore(){
+    if(!state.playerId) return;
+    var payload = {
+      name: state.playerName,
+      score: state.score,
+      level: state.level + 1,
+      totalLevels: LEVELS.length,
+      streak: state.streak,
+      updatedAt: Date.now()
+    };
+    try{ sync.writeScore(state.playerId, payload); }catch(e){ /* best-effort */ }
+  }
+
+  function renderBoard(rows){
+    rows = rows || [];
+    el.boardStatus.textContent = "Sala " + (state.roomCode || "—") + " · ao vivo · " + rows.length + " detetive(s) em campo.";
+    if(!rows.length){
+      el.boardPanel.innerHTML = '<div class="board-empty">Ninguém no placar ainda. Seja o primeiro a jogar!</div>';
+      return;
+    }
+    var sorted = rows.slice().sort(function(a,b){ return (b.score||0) - (a.score||0); });
+    el.boardPanel.innerHTML = sorted.map(function(r, i){
+      var mine = r.id === state.playerId ? " me" : "";
+      return '<div class="board-row' + mine + '">' +
+        '<span class="board-rank">' + (i+1) + '</span>' +
+        '<span class="board-name">' + escapeHtml(r.name) + (mine ? " (você)" : "") + '</span>' +
+        '<span class="board-case">Caso ' + r.level + '/' + r.totalLevels + '</span>' +
+        '<span class="board-score">' + r.score + '</span>' +
+      '</div>';
+    }).join("");
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+
+  function openLeaderboard(){
+    el.leaderboardModal.hidden = false;
+    el.btnBoardReset.hidden = true;
+
+    if(!state.roomCode){
+      el.boardStatus.textContent = "Você entrou sem código de sala.";
+      el.boardPanel.innerHTML = '<div class="board-empty">Sem código de sala, você joga normalmente, mas fica de fora do placar compartilhado. Recarregue a página e informe o código que o professor passou para participar.</div>';
+      return;
+    }
+    if(!sync.isReady()){
+      el.boardStatus.textContent = "Placar em tempo real ainda não configurado.";
+      el.boardPanel.innerHTML = '<div class="board-empty">O placar compartilhado desta turma ainda não foi conectado a um backend. Seu jogo continua valendo normalmente.</div>';
+      return;
+    }
+    // Sala ativa e Firebase pronto: mostra o botão de reset.
+    el.btnBoardReset.hidden = false;
+    if(state.boardUnsub) return;
+    el.boardStatus.textContent = "Sala " + state.roomCode + " · carregando...";
+    state.boardUnsub = sync.subscribeLeaderboard(renderBoard);
+  }
+
+  function closeLeaderboard(){
+    el.leaderboardModal.hidden = true;
+    if(state.boardUnsub){ state.boardUnsub(); state.boardUnsub = null; }
+  }
+
+  function resetRoomBoard(){
+    if(!state.roomCode || !sync.isReady()) return;
+    var ok = window.confirm("Apagar TODO o placar da sala " + state.roomCode + "? Essa ação remove as pontuações de todos os alunos desta sala e não pode ser desfeita.");
+    if(!ok) return;
+    el.btnBoardReset.disabled = true;
+    el.boardStatus.textContent = "Apagando placar da sala " + state.roomCode + "...";
+    Promise.resolve(sync.resetRoom())
+      .then(function(){
+        // O onSnapshot já atualiza a lista para vazia automaticamente.
+        el.btnBoardReset.disabled = false;
+      })
+      .catch(function(){
+        el.btnBoardReset.disabled = false;
+        el.boardStatus.textContent = "Não foi possível apagar o placar. Tente de novo.";
+      });
+  }
+
+  function renderDots(){
+    el.dots.innerHTML = "";
+    LEVELS.forEach(function(_, i){
+      var d = document.createElement("span");
+      d.className = "p-dot" + (i < state.level ? " done" : (i === state.level ? " current" : ""));
+      el.dots.appendChild(d);
+    });
+  }
+
+  function showToast(msg){
+    el.toast.textContent = msg;
+    el.toast.classList.add("show");
+    setTimeout(function(){ el.toast.classList.remove("show"); }, 1400);
+  }
+
+  function startTimer(){
+    state.startTime = Date.now();
+    state.timerId = setInterval(function(){
+      state.elapsed = (Date.now() - state.startTime)/1000;
+      el.time.textContent = fmtTime(state.elapsed);
+    }, 250);
+  }
+  function stopTimer(){
+    if(state.timerId){ clearInterval(state.timerId); state.timerId = null; }
+  }
+
+  function drawGraph(level){
+    svg.innerHTML = "";
+    var ns = "http://www.w3.org/2000/svg";
+    var nodeById = {};
+    level.nodes.forEach(function(n){ nodeById[n.id] = n; });
+
+    level.edges.forEach(function(e){
+      var a = nodeById[e[0]], b = nodeById[e[1]];
+      var line = document.createElementNS(ns, "line");
+      line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
+      line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+      line.setAttribute("class", "edge");
+      line.setAttribute("data-edge", e[0]+"-"+e[1]);
+      svg.appendChild(line);
+    });
+
+    level.nodes.forEach(function(n){
+      var g = document.createElementNS(ns, "g");
+      g.setAttribute("class", "node-g");
+      g.setAttribute("data-id", n.id);
+      g.setAttribute("data-clickable", "1");
+
+      var circle = document.createElementNS(ns, "circle");
+      circle.setAttribute("cx", n.x); circle.setAttribute("cy", n.y);
+      circle.setAttribute("r", "5.2");
+      var role = n.id === level.start ? "start" : (n.id === level.end ? "end" : "normal");
+      circle.setAttribute("class", "node-circle " + role);
+      circle.setAttribute("data-role", role);
+      g.appendChild(circle);
+
+      var label = document.createElementNS(ns, "text");
+      label.setAttribute("x", n.x); label.setAttribute("y", n.y + 1.4);
+      label.setAttribute("class", "node-label");
+      label.textContent = n.id;
+      g.appendChild(label);
+
+      if(n.role){
+        var rt = document.createElementNS(ns, "text");
+        var isStart = n.id === level.start;
+        rt.setAttribute("x", isStart ? n.x + 6.5 : n.x - 6.5);
+        rt.setAttribute("y", n.y - 7.5);
+        rt.style.textAnchor = isStart ? "start" : "end";
+        rt.setAttribute("class", "node-role");
+        rt.textContent = n.role;
+        g.appendChild(rt);
+      }
+
+      g.addEventListener("click", function(){ onNodeClick(n.id); });
+      svg.appendChild(g);
+    });
+  }
+
+  function edgeEl(a, b){
+    return svg.querySelector('[data-edge="'+a+'-'+b+'"]') || svg.querySelector('[data-edge="'+b+'-'+a+'"]');
+  }
+  function nodeCircle(id){
+    return svg.querySelector('.node-g[data-id="'+id+'"] .node-circle');
+  }
+
+  function renderPathVisual(){
+    var level = LEVELS[state.level];
+    level.nodes.forEach(function(n){
+      var c = nodeCircle(n.id);
+      var role = n.id === level.start ? "start" : (n.id === level.end ? "end" : "normal");
+      c.setAttribute("class", "node-circle " + role);
+    });
+    level.edges.forEach(function(e){
+      edgeEl(e[0], e[1]).setAttribute("class", "edge");
+    });
+    for(var i=0;i<state.path.length;i++){
+      var id = state.path[i];
+      if(id !== level.start && id !== level.end){
+        nodeCircle(id).setAttribute("class", "node-circle in-path");
+      }
+      if(i>0) edgeEl(state.path[i-1], id).setAttribute("class", "edge traveled");
+    }
+    el.pathReadout.textContent = state.path.length ? state.path.join(" → ") : "—";
+    el.btnSubmit.disabled = !(state.path.length && state.path[state.path.length-1] === level.end);
+    el.btnUndo.disabled = state.path.length <= 1;
+  }
+
+  function onNodeClick(id){
+    if(state.phase !== "playing") return;
+    var level = LEVELS[state.level];
+    var last = state.path[state.path.length-1];
+    if(id === last) return;
+
+    var idxInPath = state.path.indexOf(id);
+    if(idxInPath !== -1){
+      state.path = state.path.slice(0, idxInPath+1);
+      renderPathVisual();
+      return;
+    }
+    if(state.adj[last] && state.adj[last].indexOf(id) !== -1){
+      state.path.push(id);
+      renderPathVisual();
+    } else {
+      showToast("Não há conexão direta daqui.");
+    }
+  }
+
+  function loadLevel(i){
+    state.level = i;
+    state.phase = "playing";
+    state.quizAnswered = false;
+    state.bfsPlayed = false;
+    state.dfsPlayed = false;
+    var level = LEVELS[i];
+    state.adj = buildAdjacency(level);
+    state.path = [level.start];
+    state.shortest = bfsShortestPath(state.adj, level.start, level.end);
+    state.bfsRes = bfsTraversal(state.adj, level.start);
+    state.dfsRes = dfsTraversal(state.adj, level.start);
+
+    el.title.textContent = "Caso " + (i+1) + ": " + level.title;
+    el.blurb.textContent = level.blurb;
+    el.missionText.textContent = "Clique nos nós conectados para levar o detetive (verde) até o suspeito (vermelho) pelo caminho MAIS CURTO possível.";
+    el.level.textContent = (i+1) + "/" + LEVELS.length;
+
+    el.revealBox.hidden = true;
+    el.controls.style.display = "flex";
+    el.quiz.classList.remove("show");
+    el.compareNote.classList.remove("show");
+    el.livePanel.textContent = "Escolha uma investigação abaixo para ver a estrutura em ação.";
+    el.foundLine.textContent = "";
+    el.btnNext.hidden = true;
+
+    drawGraph(level);
+    renderPathVisual();
+    renderDots();
+    stopTimer();
+    startTimer();
+    writeScore();
+  }
+
+  function submitPath(){
+    var level = LEVELS[state.level];
+    stopTimer();
+    state.phase = "reveal";
+    el.controls.style.display = "none";
+    el.revealBox.hidden = false;
+
+    var userEdges = state.path.length - 1;
+    var shortestEdges = state.shortest.length - 1;
+    var extra = userEdges - shortestEdges;
+    var seconds = state.elapsed;
+
+    var base = 200;
+    var timePenalty = Math.min(80, Math.floor(seconds/5) * 5);
+    var stepPenalty = extra * 40;
+    var raw = base - timePenalty - stepPenalty;
+    if(raw < 40) raw = 40;
+
+    if(extra === 0){ state.streak += 1; } else { state.streak = 0; }
+    var streakBonus = state.streak > 1 ? (state.streak - 1) * 15 : 0;
+    var levelScore = raw + streakBonus;
+    state.score += levelScore;
+
+    el.score.textContent = state.score;
+    el.streak.textContent = state.streak + "×";
+    writeScore();
+
+    if(extra === 0){
+      el.feedback.className = "feedback optimal";
+      el.feedback.textContent = "Rota ótima! " + userEdges + " passos — exatamente o mínimo possível. +" + levelScore + " pontos.";
+    } else {
+      el.feedback.className = "feedback ok";
+      el.feedback.textContent = "Caso resolvido, mas não pelo caminho mais curto: você usou " + userEdges + " passos; o mínimo era " + shortestEdges + ". +" + levelScore + " pontos.";
+      // show optimal path overlay
+      for(var i=0;i<state.shortest.length-1;i++){
+        edgeEl(state.shortest[i], state.shortest[i+1]).classList.add("shortest");
+      }
+    }
+  }
+
+  function resetTraversalColors(){
+    var level = LEVELS[state.level];
+    level.nodes.forEach(function(n){
+      var c = nodeCircle(n.id);
+      var role = n.id === level.start ? "start" : (n.id === level.end ? "end" : "normal");
+      c.setAttribute("class", "node-circle " + role);
+    });
+  }
+
+  function playTraversal(kind){
+    var level = LEVELS[state.level];
+    var res = kind === "bfs" ? state.bfsRes : state.dfsRes;
+    var visitedClass = kind === "bfs" ? "visited-bfs" : "visited-dfs";
+    var structLabel = kind === "bfs" ? "Fila" : "Pilha";
+
+    el.btnBfs.disabled = true; el.btnDfs.disabled = true;
+    resetTraversalColors();
+
+    var i = 0;
+    var seen = [];
+    var timer = setInterval(function(){
+      if(i >= res.order.length){
+        clearInterval(timer);
+        el.btnBfs.disabled = false; el.btnDfs.disabled = false;
+        if(kind === "bfs") state.bfsPlayed = true; else state.dfsPlayed = true;
+        maybeShowCompare();
+        return;
+      }
+      var id = res.order[i];
+      var snap = res.snapshots[i];
+      var contents = kind === "bfs" ? snap.queue : snap.stack;
+      seen.push(id);
+      nodeCircle(id).setAttribute("class", "node-circle " + visitedClass);
+      el.livePanel.innerHTML =
+        "<span class='k'>Ordem:</span> " + seen.join(" → ") + "<br>" +
+        "<span class='k'>" + structLabel + " atual:</span> [" + contents.join(", ") + "]";
+      var pos = res.order.indexOf(level.end);
+      if(id === level.end){
+        el.foundLine.textContent = kind.toUpperCase() + ": o suspeito foi encontrado na " + (pos+1) + "ª parada desta investigação.";
+      }
+      i++;
+    }, STEP_DELAY);
+  }
+
+  function maybeShowCompare(){
+    if(!state.bfsPlayed || !state.dfsPlayed) return;
+    var level = LEVELS[state.level];
+    var bfsPos = state.bfsRes.order.indexOf(level.end) + 1;
+    var dfsPos = state.dfsRes.order.indexOf(level.end) + 1;
+    var txt = "Comparando: o BFS achou o suspeito na parada " + bfsPos + "; o DFS, na parada " + dfsPos + ". " +
+      (bfsPos <= dfsPos
+        ? "O BFS explora em camadas, então ele nunca perde para o DFS em número de passos até o alvo."
+        : "Mesmo assim, é o BFS que garante SEMPRE o menor número de passos — aqui o DFS só chegou antes por sorte da ordem dos vizinhos.");
+    el.compareNote.textContent = txt;
+    el.compareNote.classList.add("show");
+    showQuiz();
+  }
+
+  function showQuiz(){
+    if(state.quizAnswered) { el.btnNext.hidden = false; return; }
+    var q = QUIZ[state.level % QUIZ.length];
+    el.quizQ.textContent = q.q;
+    el.quizOpts.innerHTML = "";
+    q.opts.forEach(function(opt, idx){
+      var b = document.createElement("button");
+      b.className = "quiz-opt";
+      b.textContent = opt;
+      b.addEventListener("click", function(){ answerQuiz(idx, q); });
+      el.quizOpts.appendChild(b);
+    });
+    el.quizWhy.classList.remove("show");
+    el.quiz.classList.add("show");
+  }
+
+  function answerQuiz(idx, q){
+    if(state.quizAnswered) return;
+    state.quizAnswered = true;
+    var btns = el.quizOpts.querySelectorAll(".quiz-opt");
+    btns.forEach(function(b, i){
+      if(i === q.correct) b.classList.add("correct");
+      else if(i === idx) b.classList.add("wrong");
+      b.disabled = true;
+    });
+    if(idx === q.correct){
+      state.score += 50;
+      el.score.textContent = state.score;
+      writeScore();
+    }
+    el.quizWhy.textContent = q.why;
+    el.quizWhy.classList.add("show");
+    el.btnNext.hidden = false;
+  }
+
+  function nextLevel(){
+    if(state.level + 1 < LEVELS.length){
+      loadLevel(state.level + 1);
+    } else {
+      finishGame();
+    }
+  }
+
+  function finishGame(){
+    renderDots();
+    writeScore();
+    var best = parseInt(safeGet("detetive-grafos-best") || "0", 10);
+    if(state.score > best){ safeSet("detetive-grafos-best", String(state.score)); best = state.score; }
+    el.rankLine.textContent = rankFor(state.score);
+    el.finalScore.textContent = state.score;
+    el.bestLine.textContent = "Recorde neste navegador: " + best + " pontos.";
+    el.endModal.hidden = false;
+  }
+
+  el.btnUndo.addEventListener("click", function(){
+    if(state.path.length > 1){ state.path.pop(); renderPathVisual(); }
+  });
+  el.btnReset.addEventListener("click", function(){
+    state.path = [LEVELS[state.level].start]; renderPathVisual();
+  });
+  el.btnSubmit.addEventListener("click", submitPath);
+  el.btnBfs.addEventListener("click", function(){ playTraversal("bfs"); });
+  el.btnDfs.addEventListener("click", function(){ playTraversal("dfs"); });
+  el.btnNext.addEventListener("click", nextLevel);
+  el.btnStart.addEventListener("click", function(){
+    var name = el.nameInput.value.trim();
+    if(!name){
+      el.nameWarn.classList.add("show");
+      el.nameInput.focus();
+      return;
+    }
+    el.nameWarn.classList.remove("show");
+
+    // Código da sala: só dígitos. Se preenchido, precisa ter 4 dígitos.
+    // Se ficar vazio, o aluno joga normalmente, apenas fora do placar.
+    var room = (el.roomInput.value || "").replace(/\D/g, "");
+    if(room.length > 0 && room.length !== 4){
+      el.roomWarn.classList.add("show");
+      el.roomInput.focus();
+      return;
+    }
+    el.roomWarn.classList.remove("show");
+    if(room.length === 4){
+      state.roomCode = room;
+      sync.setRoom(room);
+    } else {
+      state.roomCode = null;
+    }
+
+    state.playerName = name.slice(0, 24);
+    el.introModal.hidden = true;
+    el.tutorialModal.hidden = false;
+  });
+
+  // Mantém o input do código só com dígitos enquanto o aluno digita.
+  el.roomInput.addEventListener("input", function(){
+    var v = el.roomInput.value.replace(/\D/g, "").slice(0, 4);
+    if(v !== el.roomInput.value) el.roomInput.value = v;
+    if(v.length === 4) el.roomWarn.classList.remove("show");
+  });
+  el.btnTutorialOk.addEventListener("click", function(){
+    el.tutorialModal.hidden = true;
+    loadLevel(0);
+  });
+  el.btnLeaderboard.addEventListener("click", openLeaderboard);
+  el.btnBoardClose.addEventListener("click", closeLeaderboard);
+  el.btnBoardReset.addEventListener("click", resetRoomBoard);
+  el.btnRestart.addEventListener("click", function(){
+    state.score = 0; state.streak = 0;
+    el.score.textContent = "0"; el.streak.textContent = "0×";
+    el.endModal.hidden = true;
+    loadLevel(0);
+  });
+
+  state.playerId = getPlayerId();
+  sync.init();
+  renderDots();
+})();
+</script>

@@ -1,0 +1,9 @@
+# Firebase CLI
+.firebase/
+firebase-debug.log
+firestore-debug.log
+*-debug.log
+
+# Dependências / SO
+node_modules/
+.DS_Store

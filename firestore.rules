@@ -1,0 +1,64 @@
+rules_version = '2';
+
+// =====================================================================
+// Detetive dos Grafos — Regras de segurança do Firestore
+//
+// Objetivo: liberar leitura e escrita PÚBLICAS (sem autenticação) APENAS
+// nos documentos do placar de cada sala, validando rigorosamente o formato
+// dos dados. Todo o resto do banco fica bloqueado.
+//
+// Caminho liberado: salas/{codigo}/leaderboard/{alunoId}
+// Documento: { name, score, level, totalLevels, streak, updatedAt }
+// =====================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Placar de cada sala. `codigo` é o código de 4 dígitos passado pelo
+    // professor; `alunoId` é o id anônimo gerado no navegador do aluno.
+    match /salas/{codigo}/leaderboard/{alunoId} {
+
+      // Valida o código da sala: exatamente 4 dígitos.
+      function salaValida() {
+        return codigo.matches('^[0-9]{4}$');
+      }
+
+      // Valida o conteúdo do documento enviado.
+      function docValido() {
+        let d = request.resource.data;
+        return
+          // Nenhum campo além dos 6 esperados.
+          d.keys().hasOnly(['name', 'score', 'level', 'totalLevels', 'streak', 'updatedAt'])
+          && d.keys().hasAll(['name', 'score', 'level', 'totalLevels', 'streak'])
+
+          // name: string curta e não vazia.
+          && d.name is string
+          && d.name.size() > 0
+          && d.name.size() <= 24
+
+          // score / level / totalLevels / streak: inteiros dentro de faixas sãs.
+          && d.score is int      && d.score >= 0      && d.score <= 100000
+          && d.level is int      && d.level >= 0      && d.level <= 100
+          && d.totalLevels is int && d.totalLevels >= 0 && d.totalLevels <= 100
+          && d.streak is int     && d.streak >= 0     && d.streak <= 1000
+
+          // updatedAt: opcional, mas se vier deve ser timestamp (serverTimestamp).
+          && (!('updatedAt' in d) || d.updatedAt is timestamp);
+      }
+
+      // Qualquer pessoa da turma pode ler o placar da sala.
+      allow read: if salaValida();
+
+      // Criar/atualizar: só com sala válida e documento no formato correto.
+      allow create, update: if salaValida() && docValido();
+
+      // Apagar: liberado (usado pelo botão "Resetar placar da sala").
+      allow delete: if salaValida();
+    }
+
+    // Tudo o que não for o placar de uma sala fica totalmente bloqueado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
