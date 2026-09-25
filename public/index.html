@@ -724,6 +724,7 @@
     timerId: null, startTime: 0, elapsed: 0,
     bfsRes: null, dfsRes: null, shortest: null,
     quizAnswered: false, bfsPlayed:false, dfsPlayed:false,
+    bfsSteps: null, dfsSteps: null,
     playerId: null, playerName: "Detetive", boardUnsub: null,
     roomCode: null
   };
@@ -825,16 +826,36 @@
     var visited = {};
     var stack = [start];
     var order = [], snapshots = [];
+    var parent = {};
     while(stack.length){
       var cur = stack.pop();
       if(visited[cur]) continue;
       visited[cur] = true;
       order.push(cur);
       var nbs = adj[cur].filter(function(n){ return !visited[n]; });
-      for(var i=nbs.length-1;i>=0;i--) stack.push(nbs[i]);
+      for(var i=nbs.length-1;i>=0;i--){
+        stack.push(nbs[i]);
+        if(!(nbs[i] in parent)) parent[nbs[i]] = cur;
+      }
       snapshots.push({ stack: stack.slice(), current: cur });
     }
-    return { order: order, snapshots: snapshots };
+    return { order: order, snapshots: snapshots, parent: parent };
+  }
+
+  // Percorre um mapa de "pais" (como o de dfsTraversal/bfsShortestPath) de
+  // `end` até `start`, retornando o número de arestas nesse caminho de
+  // descoberta específico (quantos passos ESTE algoritmo realmente deu para
+  // chegar pela primeira vez a `end` — não a posição dele na ordem de visita).
+  function pathLengthFromParents(parent, start, end){
+    if(end === start) return 0;
+    var steps = 0, cur = end;
+    while(cur !== start){
+      if(!(cur in parent)) return null;
+      cur = parent[cur];
+      steps++;
+      if(steps > 999) return null;
+    }
+    return steps;
   }
 
   function rankFor(score){
@@ -1080,6 +1101,8 @@
     state.quizAnswered = false;
     state.bfsPlayed = false;
     state.dfsPlayed = false;
+    state.bfsSteps = null;
+    state.dfsSteps = null;
     var level = LEVELS[i];
     state.adj = buildAdjacency(level);
     state.path = [level.start];
@@ -1182,11 +1205,17 @@
       seen.push(id);
       nodeCircle(id).setAttribute("class", "node-circle " + visitedClass);
       el.livePanel.innerHTML =
-        "<span class='k'>Ordem:</span> " + seen.join(" → ") + "<br>" +
+        "<span class='k'>Ordem de visita a TODO o mapa:</span> " + seen.join(" → ") + "<br>" +
         "<span class='k'>" + structLabel + " atual:</span> [" + contents.join(", ") + "]";
-      var pos = res.order.indexOf(level.end);
       if(id === level.end){
-        el.foundLine.textContent = kind.toUpperCase() + ": o suspeito foi encontrado na " + (pos+1) + "ª parada desta investigação.";
+        var steps = kind === "bfs"
+          ? (state.shortest.length - 1)
+          : pathLengthFromParents(state.dfsRes.parent, level.start, level.end);
+        var stepsTxt = steps + (steps === 1 ? " passo" : " passos");
+        el.foundLine.textContent = kind === "bfs"
+          ? "BFS: chegou ao suspeito em " + stepsTxt + " — o caminho mais curto, sempre."
+          : "DFS: chegou ao suspeito em " + stepsTxt + ", pelo caminho que a pilha seguiu primeiro.";
+        if(kind === "bfs") state.bfsSteps = steps; else state.dfsSteps = steps;
       }
       i++;
     }, STEP_DELAY);
@@ -1194,13 +1223,15 @@
 
   function maybeShowCompare(){
     if(!state.bfsPlayed || !state.dfsPlayed) return;
-    var level = LEVELS[state.level];
-    var bfsPos = state.bfsRes.order.indexOf(level.end) + 1;
-    var dfsPos = state.dfsRes.order.indexOf(level.end) + 1;
-    var txt = "Comparando: o BFS achou o suspeito na parada " + bfsPos + "; o DFS, na parada " + dfsPos + ". " +
-      (bfsPos <= dfsPos
-        ? "O BFS explora em camadas, então ele nunca perde para o DFS em número de passos até o alvo."
-        : "Mesmo assim, é o BFS que garante SEMPRE o menor número de passos — aqui o DFS só chegou antes por sorte da ordem dos vizinhos.");
+    var bfsSteps = state.bfsSteps, dfsSteps = state.dfsSteps;
+    var txt = "Comparando os CAMINHOS até o suspeito: o BFS chegou em " + bfsSteps +
+      (bfsSteps === 1 ? " passo" : " passos") + "; o DFS, em " + dfsSteps +
+      (dfsSteps === 1 ? " passo" : " passos") + ". ";
+    if(dfsSteps > bfsSteps){
+      txt += "O BFS explora em camadas, então ele GARANTE o caminho mínimo. O DFS mergulhou por outro caminho primeiro e só chegou ao suspeito depois de um desvio mais longo.";
+    } else {
+      txt += "Aqui os dois bateram o mesmo número de passos — coincidência da ordem dos vizinhos neste mapa. Mas só o BFS garante isso SEMPRE; em mapas maiores o DFS costuma se perder por um caminho mais longo antes de chegar.";
+    }
     el.compareNote.textContent = txt;
     el.compareNote.classList.add("show");
     showQuiz();
